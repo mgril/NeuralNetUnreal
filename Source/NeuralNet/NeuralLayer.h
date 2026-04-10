@@ -32,10 +32,13 @@ struct FNeuralLayer
 
     static float Sigmoid(float x);
     static float SigmoidDerivative(float x);
-
+    void ComputeOutputLayerNodeValues(const TArray<float>& Expected);
+    void ComputeHiddenLayerNodeValues(const FNeuralLayer& NextLayer);
+    void ApplyGradients(const TArray<float>& Inputs, float LearningRate);
 private:
     // Acces au poids entre neurone i (layer precedent) et neurone j (ce layer)
     // Weights[j * NumInputs + i]
     float GetWeight(int32 NeuronIndex, int32 InputIndex) const;
+
 
 };

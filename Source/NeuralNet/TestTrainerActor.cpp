@@ -2,6 +2,10 @@
 #include "TestTrainerActor.h"
 #include "NeuralNetwork.h"
 
+#if WITH_EDITOR
+#include "AssetRegistry/AssetRegistryModule.h"
+#include "UObject/SavePackage.h"
+#endif
 
 // Sets default values
 ATestTrainerActor::ATestTrainerActor()
@@ -14,43 +18,80 @@ ATestTrainerActor::ATestTrainerActor()
 // Called when the game starts or when spawned
 void ATestTrainerActor::BeginPlay()
 {
-	Super::BeginPlay();
-    // Architecture : 3 inputs ? 4 neurones cachés ? 2 outputs
+    Super::BeginPlay();
+
+#if WITH_EDITOR
+    
+    FString PackagePath = TEXT("/Game/NeuralNetworks/NN_XOR");
+    UPackage* Package = CreatePackage(*PackagePath);
+
+    UNeuralNetworkData* NewAsset = NewObject<UNeuralNetworkData>(
+        Package,
+        UNeuralNetworkData::StaticClass(),
+        TEXT("NN_XOR"),
+        RF_Public | RF_Standalone
+    );
+
     FNeuralNetwork Network;
-    Network.Build({ 3, 4, 2 });
+    Network.Build({ 2, 4, 1 });
+    Network.LearningRate = 0.5f;
 
-    // Inputs de test
-    TArray<float> Inputs = { 0.5f, 0.8f, 0.2f };
-    TArray<float> Expected = { 1.0f, 0.0f };
+    TArray<TArray<float>> Inputs = { { 0,0 },{ 0,1 },{ 1,0 },{ 1,1 } };
+    TArray<TArray<float>> Expected = { { 0 },  { 1 },  { 1 },  { 0 } };
 
-    // Predict chaine les deux layers automatiquement
-    TArray<float> Outputs = Network.Predict(Inputs);
+    for (int32 Epoch = 0; Epoch < 10000; Epoch++)
+        for (int32 i = 0; i < Inputs.Num(); i++)
+            Network.Train(Inputs[i], Expected[i]);
 
-    // Log des outputs finaux
-    for (int32 i = 0; i < Outputs.Num(); i++)
+    NewAsset->SaveFromNetwork(Network);
+
+    FSavePackageArgs SaveArgs;
+    SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
+    FString FilePath = FPackageName::LongPackageNameToFilename(
+        PackagePath,
+        FPackageName::GetAssetPackageExtension()
+    );
+    UPackage::SavePackage(Package, NewAsset, *FilePath, SaveArgs);
+
+    UE_LOG(LogTemp, Warning, TEXT("Asset créé : %s"), *FilePath);
+#endif
+
+    // charger depuis l'asset si il existe deja
+    if (NetworkAsset && NetworkAsset->Layers.Num() > 0)
     {
-        UE_LOG(LogTemp, Warning,
-            TEXT("Output [%d]  %.4f  (Expected: %.4f)"),
-            i,
-            Outputs[i],
-            Expected[i]
-        );
+        UE_LOG(LogTemp, Warning, TEXT("Chargement depuis l'asset..."));
+        NetworkAsset->LoadIntoNetwork(Network);
+    }
+    else
+    {
+        // from scratch
+        UE_LOG(LogTemp, Warning, TEXT("Entrainement from scratch..."));
+
+        Network.Build({ 2, 4, 1 });
+        Network.LearningRate = 0.5f;
+
+        TArray<TArray<float>> TrainingInputs = { { 0,0 },{ 0,1 },{ 1,0 },{ 1,1 } };
+        TArray<TArray<float>> TrainingExpected = { { 0 },  { 1 },  { 1 },  { 0 } };
+
+        for (int32 Epoch = 0; Epoch < 10000; Epoch++)
+        {
+            for (int32 i = 0; i < TrainingInputs.Num(); i++)
+                Network.Train(TrainingInputs[i], TrainingExpected[i]);
+        }
+
+        // Sauvegarder dans l'asset
+        if (NetworkAsset)
+        {
+            NetworkAsset->SaveFromNetwork(Network);
+            UE_LOG(LogTemp, Warning, TEXT("Poids sauvegardes dans l'asset !"));
+        }
     }
 
-    // Log du cout global
-    float Cost = Network.ComputeCost(Outputs, Expected);
-    UE_LOG(LogTemp, Warning, TEXT("Cost  %.4f"), Cost);
-
-    // Verification de l'architecture
-    UE_LOG(LogTemp, Warning,
-        TEXT("Network: %d layers  Layer[0]: %d %d  Layer[1]: %d %d"),
-        Network.Layers.Num(),
-        Network.Layers[0].NumInputs, Network.Layers[0].NumNeurons,
-        Network.Layers[1].NumInputs, Network.Layers[1].NumNeurons
-    );
+    // Prediction finale
+    TArray<float> Result = Network.Predict({ 1.0f, 0.0f });
+    UE_LOG(LogTemp, Warning, TEXT("1 XOR 0  %.4f"), Result[0]);
 }
 
-// Called every frame
 void ATestTrainerActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);

@@ -16,21 +16,21 @@ struct FLayerData
 {
     GENERATED_BODY()
 
-    UPROPERTY(EditAnywhere)
-    int32 NumInputs;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Layer")
+    int32 NumInputs = 0;
 
-    UPROPERTY(EditAnywhere)
-    int32 NumNeurons;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Layer")
+    int32 NumNeurons = 0;
 
-    UPROPERTY(EditAnywhere)
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Layer")
     TArray<float> Weights;
 
-    UPROPERTY(EditAnywhere)
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Layer")
     TArray<float> Biases;
 };
 
 UCLASS()
-class NEURALNET_API UNeuralNetworkData : public UDataAsset
+class NEURALNET_API UNeuralNetworkData : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
 
@@ -41,7 +41,8 @@ public:
     UPROPERTY(EditAnywhere, Category = "Network")
     float LearningRate = 0.1f;
 
-    // Utilitaires pour transferer vers/depuis FNeuralNetwork
-    void LoadFromNetwork(const FNeuralNetwork& Network);
-    void SaveToNetwork(FNeuralNetwork& OutNetwork) const;
+
+    void SaveFromNetwork(const FNeuralNetwork& Network);
+
+    bool LoadIntoNetwork(FNeuralNetwork& OutNetwork) const;
 };

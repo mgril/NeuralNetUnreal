@@ -15,14 +15,11 @@ FNeuralNetwork::~FNeuralNetwork()
 
 void FNeuralNetwork::Build(const TArray<int32>& LayerSizes)
 {
-    // Il faut au moins un input layer et un output layer
     check(LayerSizes.Num() >= 2);
 
     Layers.Empty();
 
-    // On cree un layer entre chaque paire de tailles
-    // LayerSizes[0] = nb d'inputs
-    // LayerSizes[1] = nb de neurones du premier layer, etc.
+
     for (int32 i = 1; i < LayerSizes.Num(); i++)
     {
         FNeuralLayer Layer;
@@ -61,4 +58,42 @@ float FNeuralNetwork::ComputeCost(const TArray<float>& Output,
     }
 
     return TotalCost;
+}
+
+float FNeuralNetwork::Train(const TArray<float>& Inputs,
+    const TArray<float>& Expected)
+{
+    // 1. Forward pass complet — remplit Outputs et WeightedInputs dans chaque layer
+    TArray<float> Output = Predict(Inputs);
+
+    // 2. Backpropagation
+    Backpropagate(Inputs, Expected);
+
+    // 3. Retourne le cout pour suivre la progression
+    return ComputeCost(Output, Expected);
+}
+
+void FNeuralNetwork::Backpropagate(const TArray<float>& Inputs,
+    const TArray<float>& Expected)
+{
+    int32 LastIndex = Layers.Num() - 1;
+
+    // NodeValues de l output layer
+    Layers[LastIndex].ComputeOutputLayerNodeValues(Expected);
+
+    //NodeValues des hidden layers (on remonte)
+    for (int32 i = LastIndex - 1; i >= 0; i--)
+    {
+        Layers[i].ComputeHiddenLayerNodeValues(Layers[i + 1]);
+    }
+
+    // Application des gradients
+    // Le premier layer recoit les inputs bruts
+    // Les suivants recoivent les outputs du layer precedent
+    for (int32 i = 0; i < Layers.Num(); i++)
+    {
+        const TArray<float>& LayerInputs = (i == 0) ? Inputs : Layers[i - 1].Outputs;
+
+        Layers[i].ApplyGradients(LayerInputs, LearningRate);
+    }
 }

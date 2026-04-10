@@ -21,10 +21,9 @@ public:
 	void Build(const TArray<int32>& LayerSizes); // cree automatiquement les layers avec les bonnes dimensions
 	TArray<float> Predict(const TArray<float>& Inputs);
 	float ComputeCost(const TArray<float>& Output, const TArray<float>& Expected);
-	//float Train(const TArray<float>& Inputs, const TArray<float>& Expected);
+	float Train(const TArray<float>& Inputs, const TArray<float>& Expected);
 
 private:
 	
-	//void Backpropagate(const TArray<float>& Expected);
-	//void ApplyGradients();
+	void Backpropagate(const TArray<float>& Inputs, const TArray<float>& Expected);
 };

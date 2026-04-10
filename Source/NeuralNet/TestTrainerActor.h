@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "NeuralNetworkData.h"
 #include "TestTrainerActor.generated.h"
 
 UCLASS()
@@ -14,6 +15,9 @@ class NEURALNET_API ATestTrainerActor : public AActor
 public:	
 	// Sets default values for this actor's properties
 	ATestTrainerActor();
+
+	UPROPERTY(EditAnywhere, Category = "Neural Network")
+	UNeuralNetworkData* NetworkAsset;
 
 protected:
 	// Called when the game starts or when spawned
