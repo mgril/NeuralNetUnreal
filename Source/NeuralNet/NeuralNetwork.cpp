@@ -5,9 +5,7 @@
 
 FNeuralNetwork::FNeuralNetwork()
 {
-
 }
-
 
 FNeuralNetwork::~FNeuralNetwork()
 {
@@ -30,16 +28,15 @@ void FNeuralNetwork::Build(const TArray<int32>& LayerSizes)
 
 TArray<float> FNeuralNetwork::Predict(const TArray<float>& Inputs)
 {
-    // Le premier layer recoit les inputs bruts
     TArray<float> CurrentInputs = Inputs;
 
-    // Chaque layer recoit les outputs du layer precedent
+    // Layer recoit les outputs du layer precedent
     for (FNeuralLayer& Layer : Layers)
     {
         CurrentInputs = Layer.ForwardPass(CurrentInputs);
     }
 
-    // CurrentInputs contient maintenant les outputs du dernier layer
+    // CurrentInputs outputs du dernier layer
     return CurrentInputs;
 }
 
@@ -48,7 +45,6 @@ float FNeuralNetwork::ComputeCost(const TArray<float>& Output,
 {
     check(Output.Num() == Expected.Num());
 
-    // somme (Expected - Output)^2   formule page 25 du PDF
     float TotalCost = 0.0f;
 
     for (int32 i = 0; i < Output.Num(); i++)
@@ -63,13 +59,10 @@ float FNeuralNetwork::ComputeCost(const TArray<float>& Output,
 float FNeuralNetwork::Train(const TArray<float>& Inputs,
     const TArray<float>& Expected)
 {
-    // 1. Forward pass complet — remplit Outputs et WeightedInputs dans chaque layer
     TArray<float> Output = Predict(Inputs);
 
-    // 2. Backpropagation
     Backpropagate(Inputs, Expected);
 
-    // 3. Retourne le cout pour suivre la progression
     return ComputeCost(Output, Expected);
 }
 
@@ -78,18 +71,15 @@ void FNeuralNetwork::Backpropagate(const TArray<float>& Inputs,
 {
     int32 LastIndex = Layers.Num() - 1;
 
-    // NodeValues de l output layer
     Layers[LastIndex].ComputeOutputLayerNodeValues(Expected);
 
-    //NodeValues des hidden layers (on remonte)
+    //NodeValues des hidden layers on remonte
     for (int32 i = LastIndex - 1; i >= 0; i--)
     {
         Layers[i].ComputeHiddenLayerNodeValues(Layers[i + 1]);
     }
 
-    // Application des gradients
-    // Le premier layer recoit les inputs bruts
-    // Les suivants recoivent les outputs du layer precedent
+    // Le premier layer recoit les inputs bruts les suivants recoivent les outputs du layer precedent
     for (int32 i = 0; i < Layers.Num(); i++)
     {
         const TArray<float>& LayerInputs = (i == 0) ? Inputs : Layers[i - 1].Outputs;

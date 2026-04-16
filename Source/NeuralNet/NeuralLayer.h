@@ -36,8 +36,7 @@ struct FNeuralLayer
     void ComputeHiddenLayerNodeValues(const FNeuralLayer& NextLayer);
     void ApplyGradients(const TArray<float>& Inputs, float LearningRate);
 private:
-    // Acces au poids entre neurone i (layer precedent) et neurone j (ce layer)
-    // Weights[j * NumInputs + i]
+    
     float GetWeight(int32 NeuronIndex, int32 InputIndex) const;
 
 

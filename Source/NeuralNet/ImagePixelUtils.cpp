@@ -11,14 +11,35 @@ bool FImagePixelUtils::TextureToFloatArray(UTexture2D* Texture,
 {
     if (!Texture) return false;
 
+    // Force le chargement complet de la texture en RAM
+    Texture->SetForceMipLevelsToBeResident(30.0f);
+    Texture->WaitForStreaming();
+
+
+    // Vérifie que les données sont bien disponibles
+    if (!Texture->GetPlatformData() ||
+        Texture->GetPlatformData()->Mips.Num() == 0)
+    {
+        UE_LOG(LogTemp, Error, TEXT("Texture sans données : %s"),
+            *Texture->GetName());
+        return false;
+    }
+
     // Force la lecture des pixels en RAM
     FTexture2DMipMap& Mip = Texture->GetPlatformData()->Mips[0];
-    FByteBulkData& RawData = Mip.BulkData;
 
+    // Force le chargement du mip en RAM si pas encore fait
+    if (!Mip.BulkData.IsBulkDataLoaded())
+    {
+        Mip.BulkData.ForceBulkDataResident();
+    }
+    FByteBulkData& RawData = Mip.BulkData;
     const uint8* RawBytes = static_cast<const uint8*>(RawData.Lock(LOCK_READ_ONLY));
     if (!RawBytes)
     {
         RawData.Unlock();
+        UE_LOG(LogTemp, Error, TEXT("RawBytes null pour : %s"),
+            *Texture->GetName());
         return false;
     }
 
@@ -84,7 +105,7 @@ void FImagePixelUtils::LoadDataset(const FString& FolderPath,
             UTexture2D* Texture = Cast<UTexture2D>(Asset.GetAsset());
             if (!Texture) continue;
 
-            // Lecture des pixels
+           // Lecture des pixels
             TArray<float> Pixels;
             if (!TextureToFloatArray(Texture, Pixels, TargetSize)) continue;
 

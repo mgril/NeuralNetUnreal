@@ -18,7 +18,6 @@ void UNeuralNetworkData::SaveFromNetwork(const FNeuralNetwork& Network)
         Layers.Add(Data);
     }
 
-    // Marque l'asset comme modifié pour qu'Unreal propose de sauvegarder
 #if WITH_EDITOR
     MarkPackageDirty();
 #endif

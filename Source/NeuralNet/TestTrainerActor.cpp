@@ -17,20 +17,18 @@ void ATestTrainerActor::BeginPlay()
 {
     Super::BeginPlay();
 
-
     TArray<TArray<float>> InputsImg;
     TArray<TArray<float>> Labels;
 
-    // Charge le dataset  10 classes, images redimensionnees en 28x28
     FImagePixelUtils::LoadDataset(
         TEXT("/Game/testSet/LabelizedImg"),
         InputsImg,
         Labels,
-        10,   //  10 classes (0 à 9)
+        10,   //  10 classes (0 a 9)
         28    //  28x28 pixels
     );
 
-    // Vérifie que les pixels sont bien entre 0 et 1
+    // Verifie que les pixels sont bien entre 0 et 1
     if (InputsImg.Num() > 0)
     {
         UE_LOG(LogTemp, Warning,
@@ -46,28 +44,28 @@ void ATestTrainerActor::BeginPlay()
 
     FNeuralNetwork Network;
 
-    // CAS 1 : un asset est assigne dans l'editeur  on charge
-    if (NetworkAsset && NetworkAsset->Layers.Num() > 0)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("=== Chargement depuis l'asset ==="));
-        NetworkAsset->LoadIntoNetwork(Network);
-    }
-    // CAS 2 : pas d'asset  on entraîne puis on sauvegarde 
-    else
-    {
-        UE_LOG(LogTemp, Warning, TEXT("=== Entraînement from scratch ==="));
+    // Asset editor deja present
+    //if (NetworkAsset && NetworkAsset->Layers.Num() > 0)
+    //{
+    //    UE_LOG(LogTemp, Warning, TEXT("Chargement depuis l'asset "));
+    //    NetworkAsset->LoadIntoNetwork(Network);
+    //}
+    //// Pas d'asset on entraine puis on sauvegarde 
+    //else
+    //{
+        UE_LOG(LogTemp, Warning, TEXT("Entrainement from scratch"));
 
-        Network.Build({ 2, 4, 1 });
-        Network.LearningRate = 0.5f;
+        Network.Build({ 784,127, 64, 10 });
+        Network.LearningRate = 0.05f;
 
         TArray<TArray<float>> Inputs = { { 0,0 },{ 0,1 },{ 1,0 },{ 1,1 } };
         TArray<TArray<float>> Expected = { { 0 },  { 1 },  { 1 },  { 0 } };
 
-        for (int32 Epoch = 0; Epoch < 10000; Epoch++)
+        for (int32 Epoch = 0; Epoch < 10; Epoch++)
             for (int32 i = 0; i < Inputs.Num(); i++)
-                Network.Train(Inputs[i], Expected[i]);
+                Network.Train(InputsImg[i], Labels[i]);
 
-        UE_LOG(LogTemp, Warning, TEXT("Entraînement termine !"));
+        UE_LOG(LogTemp, Warning, TEXT("Entrainement termine !"));
 
 #if WITH_EDITOR
         // Creer et sauvegarder l'asset sur disque
@@ -99,17 +97,23 @@ void ATestTrainerActor::BeginPlay()
         bool bSaved = UPackage::SavePackage(Package, Asset, *FilePath, SaveArgs);
         UE_LOG(LogTemp, Warning, TEXT("Asset sauvegarde : %s"), bSaved ? TEXT("OUI") : TEXT("NON"));
 #endif
+    //}
+    
+    // Prediction finale 
+    for (int32 i = 0; i < InputsImg.Num(); i++)
+    {
+        TArray<float> Output = Network.Predict(InputsImg[i]);
+
+        if (Output.Num() > 0)
+        {
+            float* MaxPtr = std::max_element(Output.GetData(), Output.GetData() + Output.Num());
+            int32 PredictedIndex = MaxPtr - Output.GetData();
+
+            float* LabelPtr = std::max_element(Labels[i].GetData(), Labels[i].GetData() + Labels[i].Num());
+            int32 ActualIndex = LabelPtr - Labels[i].GetData();
+
+            UE_LOG(LogTemp, Warning, TEXT("Image %d - Prédit : %d | Attendu : %d"), i, PredictedIndex, ActualIndex);
+        }
     }
-
-    // Prediction finale dans les deux cas 
-    TArray<float> R00 = Network.Predict({ 0.0f, 0.0f });
-    TArray<float> R01 = Network.Predict({ 0.0f, 1.0f });
-    TArray<float> R10 = Network.Predict({ 1.0f, 0.0f });
-    TArray<float> R11 = Network.Predict({ 1.0f, 1.0f });
-
-    UE_LOG(LogTemp, Warning, TEXT("0 XOR 0 = %.4f (attendu: 0)"), R00[0]);
-    UE_LOG(LogTemp, Warning, TEXT("0 XOR 1 = %.4f (attendu: 1)"), R01[0]);
-    UE_LOG(LogTemp, Warning, TEXT("1 XOR 0 = %.4f (attendu: 1)"), R10[0]);
-    UE_LOG(LogTemp, Warning, TEXT("1 XOR 1 = %.4f (attendu: 0)"), R11[0]);
 }
 

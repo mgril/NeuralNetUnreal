@@ -57,7 +57,7 @@ TArray<float> FNeuralLayer::ForwardPass(const TArray<float>& Inputs)
 
     return Outputs;
 }
-// ─── Output Layer ─────────────────────────────────────────────────────────────
+// Output Layer
 // NodeValue = 2*(Output - Expected) * SigmoidDerivative(WeightedInput)
 // C'est dC/dO * dO/dWI — page 41-42 du PDF
 void FNeuralLayer::ComputeOutputLayerNodeValues(const TArray<float>& Expected)
@@ -73,20 +73,18 @@ void FNeuralLayer::ComputeOutputLayerNodeValues(const TArray<float>& Expected)
     }
 }
 
-// ─── Hidden Layer ─────────────────────────────────────────────────────────────
-// NodeValue = Σ(NextWeight * NextNodeValue) * SigmoidDerivative(WeightedInput)
-// On cumule l'influence de chaque connexion sortante — page 53-54 de ton PDF
+// Hidden Layer
+// NodeValue = Somme(NextWeight * NextNodeValue) * SigmoidDerivative(WeightedInput)
+// On cumule l'influence de chaque connexion sortante
 
 void FNeuralLayer::ComputeHiddenLayerNodeValues(const FNeuralLayer& NextLayer)
 {
     for (int32 j = 0; j < NumNeurons; j++)
     {
-        // Cumul de l'influence de ce neurone sur tous les neurones du layer suivant
         float dC_dI = 0.0f;
 
         for (int32 k = 0; k < NextLayer.NumNeurons; k++)
         {
-            // Le poids de la connexion j→k dans le layer suivant
             dC_dI += NextLayer.NodeValues[k] * NextLayer.GetWeight(k, j);
         }
 
@@ -94,10 +92,7 @@ void FNeuralLayer::ComputeHiddenLayerNodeValues(const FNeuralLayer& NextLayer)
         NodeValues[j] = dC_dI * dI_dWI;  
     }
 }
-// ─── Apply Gradients ──────────────────────────────────────────────────────────
-// Weight -= LearningRate * NodeValue * ConnectionInput
-// Bias   -= LearningRate * NodeValue
-// Page 57-58 du PDF
+// Apply Gradients 
 
 void FNeuralLayer::ApplyGradients(const TArray<float>& Inputs, float LearningRate)
 {
@@ -115,14 +110,12 @@ void FNeuralLayer::ApplyGradients(const TArray<float>& Inputs, float LearningRat
         }
     }
 }
-// ─── Helpers ─────────────────────────────────────────────────────────
+// Helpers
 
 float FNeuralLayer::GetWeight(int32 NeuronIndex, int32 InputIndex) const
 {
     return Weights[NeuronIndex * NumInputs + InputIndex];
 }
-
-
 
 float FNeuralLayer::Sigmoid(float X)
 {
@@ -131,7 +124,6 @@ float FNeuralLayer::Sigmoid(float X)
 
 float FNeuralLayer::SigmoidDerivative(float X)
 {
-    // Derivee de sigmoid : sigmoid(x) * (1 - sigmoid(x))
     float S = Sigmoid(X);
     return S * (1.0f - S);
 }
